@@ -2,6 +2,7 @@ from tkinter import *
 from tkinter import messagebox
 import random
 import pyperclip
+import json
 
 FONT = "ariel"
 FONT_SIZE = 13
@@ -10,7 +11,7 @@ FONT_SIZE = 13
 # ---------------------------- PASSWORD GENERATOR ------------------------------- #
 
 def generate_password():
-    password_input.delete(0,"end")
+    password_input.delete(0, "end")
     letters = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u',
                'v',
                'w', 'x', 'y', 'z', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q',
@@ -36,19 +37,60 @@ def save():
     website = website_input.get()
     email = username_input.get()
     password = password_input.get()
+    new_data = {
+        website: {
+            "email": email,
+            "password": password,
+        }
+    }
 
     if len(website) == 0 or len(password) == 0 or len(email) == 0:
         messagebox.showerror(title="ERROR", message="You cannot have an empty website or password")
 
     else:
-        is_ok = messagebox.askokcancel(title=website, message=f"These are the details entered: \n\nEmail: {email}"
-                                                              f"\nPassword: {password}"
-                                                              f"\nIs it okay to save?")
-        if is_ok:
-            with open("passwords.txt", "a") as file:
-                file.write(f"{website} | {email} | {password}\n")
-                password_input.delete(0, "end")
-                website_input.delete(0, "end")
+        try:
+            with open("passwords.json", "r") as data_file:
+
+                # Reading the old data
+                data = json.load(data_file)
+
+        except FileNotFoundError:
+            with open("passwords.json", "w") as data_file:
+                # Saving updated data
+                json.dump(new_data, data_file, indent=4)
+
+        else:
+            # Updating old data with new data
+            data.update(new_data)
+
+            with open("passwords.json", "w") as data_file:
+                # Saving updated data
+                json.dump(data, data_file, indent=4)
+
+        finally:
+            password_input.delete(0, "end")
+            website_input.delete(0, "end")
+
+
+# ---------------------------- FIND PASSWORD ------------------------------- #
+
+def find_password():
+    website = website_input.get()
+
+    try:
+        with open("passwords.json", "r") as data_file:
+
+            data = json.load(data_file)
+
+        email = data[website]["email"]
+        password = data[website]["password"]
+        messagebox.showinfo(title=f"{website}", message=f"Email: {email}\nPassword: {password}")
+
+    except FileNotFoundError:
+        messagebox.showerror(title="ERROR", message="No Data File Found")
+
+    except KeyError:
+        messagebox.showerror(title="ERROR", message="No details for the website exists")
 
 
 # ---------------------------- UI SETUP ------------------------------- #
@@ -73,11 +115,11 @@ password_label = Label(text="Password:", font=(FONT, FONT_SIZE))
 password_label.grid(row=3, column=0)
 
 # Entries/input
-website_input = Entry(width=35)
-website_input.grid(row=1, column=1, columnspan=2)
+website_input = Entry(width=21)
+website_input.grid(row=1, column=1)
 website_input.focus()
 
-username_input = Entry(width=35)
+username_input = Entry(width=38)
 username_input.grid(row=2, column=1, columnspan=2)
 username_input.insert(1, "waqar.ahmad@gmail.com")
 
@@ -85,7 +127,10 @@ password_input = Entry(width=21)
 password_input.grid(row=3, column=1)
 
 # Buttons
-generate_button = Button(text="Generate Password", font=(FONT, FONT_SIZE), command=generate_password)
+search_button = Button(text="Search", font=(FONT, FONT_SIZE), width=13, command=find_password)
+search_button.grid(row=1, column=2)
+
+generate_button = Button(text="Generate Password", font=(FONT, FONT_SIZE), command=generate_password, width=13)
 generate_button.grid(row=3, column=2)
 
 add_button = Button(text="Add", font=(FONT, FONT_SIZE), width=36, command=save)
